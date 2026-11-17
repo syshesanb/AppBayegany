@@ -1,0 +1,72 @@
+<Window x:Class="BayeganyApp.Windows.OcrViewPopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🔍 نمایش و ویرایش کامل متن OCR سند"
+        Width="1050" Height="720"
+        MinWidth="750" MinHeight="500"
+        WindowStartupLocation="CenterOwner"
+        FlowDirection="RightToLeft"
+        Background="#0F172A"
+        Foreground="White"
+        FontFamily="Tahoma, Segoe UI">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- سربرگ -->
+            <RowDefinition Height="*"/>    <!-- متن تمام‌صفحه OCR -->
+            <RowDefinition Height="Auto"/> <!-- نوار دکمه‌ها -->
+        </Grid.RowDefinitions>
+
+        <!-- سربرگ پنجره پاپ‌آپ -->
+        <Border Grid.Row="0" Background="#1E293B" Padding="18,12" BorderBrush="#334155" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock x:Name="TxtHeaderTitle" Text="🔍 متن استخراج‌شده OCR و اطلاعات سند" FontSize="16" FontWeight="Bold" Foreground="#38BDF8"/>
+                    <TextBlock x:Name="TxtHeaderSubtitle" Text="متن کامل شناسایی‌شده از روی تصویر — شما می‌توانید در این کادر متن را ویرایش یا تکمیل نمایید." FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="📋 کپی کل متن" Click="BtnCopy_Click" Width="130" Height="34" Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="12"/>
+            </Grid>
+        </Border>
+
+        <!-- کادر تمام‌صفحه نمایش و ویرایش متن OCR (پوشش کامل ارتفاع و عرض) -->
+        <Border Grid.Row="1" Background="#020617" Margin="12" CornerRadius="6" BorderBrush="#334155" BorderThickness="1.5">
+            <TextBox x:Name="TxtOcrFull" 
+                     VerticalAlignment="Stretch"
+                     HorizontalAlignment="Stretch"
+                     VerticalContentAlignment="Top"
+                     HorizontalContentAlignment="Stretch"
+                     AcceptsReturn="True" 
+                     TextWrapping="Wrap" 
+                     VerticalScrollBarVisibility="Auto" 
+                     HorizontalScrollBarVisibility="Disabled"
+                     Background="Transparent"
+                     Foreground="#F8FAFC"
+                     CaretBrush="#38BDF8"
+                     BorderThickness="0"
+                     FontSize="15"
+                     Padding="16"
+                     FontFamily="Tahoma, Segoe UI"/>
+        </Border>
+
+        <!-- نوار دکمه‌های پایین پنجره -->
+        <Border Grid.Row="2" Background="#1E293B" Padding="16,12" BorderBrush="#334155" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Content="💾 ذخیره و اعمال تغییرات" Click="BtnSaveAndClose_Click" Width="180" Height="38" Background="#16A34A" Foreground="White" FontWeight="Bold" FontSize="13" Margin="0,0,10,0"/>
+                    <Button Content="🗑️ پاک کردن کادر" Click="BtnClear_Click" Width="130" Height="38" Background="#EF4444" Foreground="White" FontWeight="Bold" FontSize="13"/>
+                </StackPanel>
+
+                <Button Grid.Column="2" Content="❌ بستن پنجره" Click="BtnClose_Click" Width="120" Height="38" Background="#64748B" Foreground="White" FontWeight="Bold" FontSize="13"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

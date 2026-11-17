@@ -1,0 +1,14 @@
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Build results
+**/[Bb]in/
+**/[Oo]bj/
+
+# Temporary & Backup files
+*backup*.db
+*.tmp
+*.log
