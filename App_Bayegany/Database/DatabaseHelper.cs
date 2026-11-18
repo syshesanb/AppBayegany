@@ -48,6 +48,13 @@ namespace BayeganyApp.Database
 
                     _dbFilePath = Path.Combine(dataDir, "bayegany.db");
 
+                    // اگر دیتابیس اصلی نبود، از روی دیتابیس خالی (که از گیت پول شده) نسخه اولیه ساخته شود
+                    string emptyDb = Path.Combine(dataDir, "bayegany_empty.db");
+                    if (!File.Exists(_dbFilePath) && File.Exists(emptyDb))
+                    {
+                        try { File.Copy(emptyDb, _dbFilePath, true); } catch { }
+                    }
+
                     string altDb = Path.Combine(baseDir, "Data", "bayegany.db");
                     if (!File.Exists(_dbFilePath) && File.Exists(altDb))
                     {
