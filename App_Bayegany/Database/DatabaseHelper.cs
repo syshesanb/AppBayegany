@@ -207,8 +207,8 @@ namespace BayeganyApp.Database
 
             trans.Commit();
 
-            // بررسی و درج داده‌های نمونه در صورت خالی بودن دیتابیس
-            SeedSampleDataIfEmpty(conn);
+            // توجه: درج خودکار داده‌های پیش‌فرض غیرفعال شد تا دیتابیس همیشه کاملاً خام و بدون دیتای اضافی باقی بماند
+            // SeedSampleDataIfEmpty(conn);
         }
 
         private static void ExecuteNonQuery(SqliteConnection conn, string sql)
