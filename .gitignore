@@ -12,3 +12,6 @@
 *backup*.db
 *.tmp
 *.log
+
+**/Data/bayegany.db
+!**/Data/bayegany_empty.db

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.Win32;
 using BayeganyApp.Controls;
 using BayeganyApp.Database;
@@ -319,13 +320,92 @@ namespace BayeganyApp
             {
                 try
                 {
-                    File.Copy(DatabaseHelper.DbFilePath, saveDlg.FileName, true);
-                    MessageBox.Show("پشتیبان‌گیری از دیتابیس با موفقیت انجام شد.\nتمام مشخصات و تصاویر به صورت تک‌فایلی ذخیره شدند.", "عملیات موفق", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // استفاده از اشتراک‌گذاری ایمن برای خواندن دیتابیس حتی در صورت باز بودن در برنامه
+                    using (var src = new FileStream(DatabaseHelper.DbFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    using (var dst = new FileStream(saveDlg.FileName, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        src.CopyTo(dst);
+                    }
+
+                    MessageBox.Show("پشتیبان‌گیری از دیتابیس با موفقیت انجام شد.\nتمام مشخصات و تصاویر مدارک ذخیره شدند.", "عملیات موفق", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"خطا در پشتیبان‌گیری:\n{ex.Message}", "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private void BtnRestore_Click(object sender, RoutedEventArgs e)
+        {
+            var openDlg = new OpenFileDialog
+            {
+                Title = "انتخاب فایل پشتیبان جهت بازیابی اطلاعات بایگانی",
+                Filter = "فایل پایگاه‌داده SQLite (*.db)|*.db|تمام فایل‌ها (*.*)|*.*"
+            };
+
+            if (openDlg.ShowDialog() != true) return;
+
+            string selectedFile = openDlg.FileName;
+            if (!File.Exists(selectedFile)) return;
+
+            var confirm = MessageBox.Show(
+                "هشدار مهم:\nبا بازیابی این فایل، کلیه اسناد و اطلاعات فعلی سامانه با فایل پشتیبان انتخابی جایگزین خواهد شد.\n\n" +
+                "(البته یک نسخه پشتیبان اضطراری از داده‌های فعلی به صورت خودکار در پوشه Data ذخیره خواهد شد).\n\n" +
+                "آیا از انجام بازیابی اطمینان کامل دارید؟",
+                "تأیید بازیابی اطلاعات بایگانی",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+
+                string currentDb = DatabaseHelper.DbFilePath;
+                string dataDir = Path.GetDirectoryName(currentDb) ?? "";
+
+                // پاکسازی اتصالات فعال
+                Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                // ۱. تهیه پشتیبان اضطراری از دیتابیس فعلی
+                if (File.Exists(currentDb))
+                {
+                    string emergencyBackup = Path.Combine(dataDir, $"bayegany_auto_backup_before_restore_{DateTime.Now:yyyyMMdd_HHmmss}.db");
+                    try
+                    {
+                        using (var src = new FileStream(currentDb, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (var dst = new FileStream(emergencyBackup, FileMode.Create, FileAccess.Write, FileShare.None))
+                        {
+                            src.CopyTo(dst);
+                        }
+                    }
+                    catch { }
+                }
+
+                // ۲. جایگزینی دیتابیس با فایل پشتیبان
+                using (var src = new FileStream(selectedFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var dst = new FileStream(currentDb, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    src.CopyTo(dst);
+                }
+
+                // ۳. بارگذاری مجدد جداول و فیلترها در برنامه
+                DatabaseHelper.InitializeDatabase();
+                LoadFiltersData();
+                RefreshDocumentsList();
+
+                Mouse.OverrideCursor = null;
+                MessageBox.Show("اطلاعات و مدارک سامانه بایگانی با موفقیت از فایل پشتیبان بازیابی شد.", "بازیابی موفق", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                Mouse.OverrideCursor = null;
+                MessageBox.Show($"خطا در حین بازیابی اطلاعات:\n{ex.Message}", "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

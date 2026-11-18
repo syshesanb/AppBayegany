@@ -14,6 +14,10 @@ reg query HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy /v VerifiedAndReputabl
 if %errorlevel% equ 0 goto SAC_ENABLED
 
 REM 3. If SAC is OFF, launch native BayeganyApp directly
+if exist "%~dp0App_Bayegany\bin\Debug\net9.0-windows\win-x64\BayeganyApp.exe" (
+    start "" /d "%~dp0App_Bayegany\bin\Debug\net9.0-windows\win-x64" "%~dp0App_Bayegany\bin\Debug\net9.0-windows\win-x64\BayeganyApp.exe"
+    exit
+)
 if exist "%~dp0App_Bayegany\bin\Release\net9.0-windows\win-x64\BayeganyApp.exe" (
     start "" /d "%~dp0App_Bayegany\bin\Release\net9.0-windows\win-x64" "%~dp0App_Bayegany\bin\Release\net9.0-windows\win-x64\BayeganyApp.exe"
     exit

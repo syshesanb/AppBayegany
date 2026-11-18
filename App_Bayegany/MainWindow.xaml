@@ -36,7 +36,8 @@
                     <Button Content="📊 گزارش‌گیری جامع و ماتریسی" Click="BtnOpenReport_Click" Width="210" Height="36" Background="#0284C7" FontWeight="Bold" Margin="0,0,8,0" ToolTip="گزارش چندبعدی موضوعات سه‌سطحی و اشخاص سه‌گانه"/>
                     <Button Content="👥 اشخاص" Click="BtnManagePersons_Click" Width="95" Height="36" Background="#334155" Margin="0,0,8,0"/>
                     <Button Content="📁 موضوعات" Click="BtnManageSubjects_Click" Width="95" Height="36" Background="#334155" Margin="0,0,8,0"/>
-                    <Button Content="💾 پشتیبان‌گیری" Click="BtnBackup_Click" Width="110" Height="36" Background="#334155"/>
+                    <Button Content="💾 پشتیبان‌گیری" Click="BtnBackup_Click" Width="105" Height="36" Background="#334155" Margin="0,0,6,0" ToolTip="تهیه نسخه پشتیبان از کل بانک اطلاعاتی و مدارک"/>
+                    <Button Content="♻️ بازیابی اطلاعات" Click="BtnRestore_Click" Width="115" Height="36" Background="#B45309" ToolTip="بازیابی اطلاعات از فایل پشتیبان قبلی"/>
                 </StackPanel>
             </Grid>
         </Border>
