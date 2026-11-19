@@ -28,9 +28,50 @@ namespace BayeganyApp
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            ApplyUserPermissions();
             LoadFiltersData();
             _isInitialized = true;
             RefreshDocumentsList();
+        }
+
+        private void ApplyUserPermissions()
+        {
+            if (UserSession.CurrentUser != null)
+            {
+                TxtCurrentUser.Text = $"{UserSession.CurrentUser.FullName} ({UserSession.CurrentUser.RoleTitle})";
+            }
+            else
+            {
+                TxtCurrentUser.Text = "-";
+            }
+
+            // اعمال محدودیت‌های دسترسی روی دکمه‌ها
+            BtnNewDoc.IsEnabled = UserSession.CanAddDoc;
+            BtnNewDoc.Opacity = UserSession.CanAddDoc ? 1.0 : 0.45;
+
+            BtnEditDoc.IsEnabled = UserSession.CanEditDoc;
+            BtnEditDoc.Opacity = UserSession.CanEditDoc ? 1.0 : 0.45;
+
+            BtnDeleteDoc.IsEnabled = UserSession.CanDeleteDoc;
+            BtnDeleteDoc.Opacity = UserSession.CanDeleteDoc ? 1.0 : 0.45;
+
+            BtnManagePersons.IsEnabled = UserSession.CanManagePersons;
+            BtnManagePersons.Opacity = UserSession.CanManagePersons ? 1.0 : 0.45;
+
+            BtnManageSubjects.IsEnabled = UserSession.CanManageSubjects;
+            BtnManageSubjects.Opacity = UserSession.CanManageSubjects ? 1.0 : 0.45;
+
+            BtnOpenReport.IsEnabled = UserSession.CanViewReports;
+            BtnOpenReport.Opacity = UserSession.CanViewReports ? 1.0 : 0.45;
+
+            BtnBackup.IsEnabled = UserSession.CanBackupRestore;
+            BtnBackup.Opacity = UserSession.CanBackupRestore ? 1.0 : 0.45;
+
+            BtnRestore.IsEnabled = UserSession.CanBackupRestore;
+            BtnRestore.Opacity = UserSession.CanBackupRestore ? 1.0 : 0.45;
+
+            // دکمه مدیریت کاربران
+            BtnManageUsers.Visibility = UserSession.CanManageUsers ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void LoadFiltersData()
@@ -239,6 +280,12 @@ namespace BayeganyApp
 
         private void BtnNewDoc_Click(object sender, RoutedEventArgs e)
         {
+            if (!UserSession.CanAddDoc)
+            {
+                MessageBox.Show("شما مجوز ثبت مدرک جدید در بایگانی را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var editWin = new DocumentEditWindow(0) { Owner = this };
             if (editWin.ShowDialog() == true)
             {
@@ -250,6 +297,12 @@ namespace BayeganyApp
 
         private void OpenEditSelectedDoc()
         {
+            if (!UserSession.CanEditDoc)
+            {
+                MessageBox.Show("شما مجوز ویرایش مدارک بایگانی را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             if (_selectedDocument == null)
             {
                 MessageBox.Show("ابتدا یک سند را از جدول انتخاب نمایید.", "توجه", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -265,6 +318,12 @@ namespace BayeganyApp
 
         private void BtnDeleteSelectedDoc_Click(object sender, RoutedEventArgs e)
         {
+            if (!UserSession.CanDeleteDoc)
+            {
+                MessageBox.Show("شما مجوز حذف مدارک از سامانه بایگانی را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             if (_selectedDocument == null)
             {
                 MessageBox.Show("ابتدا یک سند را برای حذف انتخاب نمایید.", "توجه", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -289,12 +348,24 @@ namespace BayeganyApp
 
         private void BtnOpenReport_Click(object sender, RoutedEventArgs e)
         {
+            if (!UserSession.CanViewReports)
+            {
+                MessageBox.Show("شما مجوز دسترسی به بخش گزارش‌گیری را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var reportWin = new AdvancedReportWindow { Owner = this };
             reportWin.ShowDialog();
         }
 
         private void BtnManagePersons_Click(object sender, RoutedEventArgs e)
         {
+            if (!UserSession.CanManagePersons)
+            {
+                MessageBox.Show("شما مجوز دسترسی به بخش مدیریت اشخاص را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var pWin = new ManagePersonsWindow(isSelectionMode: false) { Owner = this };
             pWin.ShowDialog();
             LoadFiltersData();
@@ -302,6 +373,12 @@ namespace BayeganyApp
 
         private void BtnManageSubjects_Click(object sender, RoutedEventArgs e)
         {
+            if (!UserSession.CanManageSubjects)
+            {
+                MessageBox.Show("شما مجوز دسترسی به بخش مدیریت موضوعات را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var sWin = new ManageSubjectsWindow { Owner = this };
             sWin.ShowDialog();
             LoadFiltersData();
@@ -309,6 +386,12 @@ namespace BayeganyApp
 
         private void BtnBackup_Click(object sender, RoutedEventArgs e)
         {
+            if (!UserSession.CanBackupRestore)
+            {
+                MessageBox.Show("شما مجوز پشتیبان‌گیری از پایگاه‌داده را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var saveDlg = new SaveFileDialog
             {
                 Title = "ذخیره فایل پشتیبان دیتابیس بایگانی (شامل تمام اسناد و تصاویر)",
@@ -338,6 +421,11 @@ namespace BayeganyApp
 
         private void BtnRestore_Click(object sender, RoutedEventArgs e)
         {
+            if (!UserSession.CanBackupRestore)
+            {
+                MessageBox.Show("شما مجوز بازیابی اطلاعات پایگاه‌داده را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             var openDlg = new OpenFileDialog
             {
                 Title = "انتخاب فایل پشتیبان جهت بازیابی اطلاعات بایگانی",
@@ -454,6 +542,62 @@ namespace BayeganyApp
 
             _isInitialized = true;
             RefreshDocumentsList();
+        }
+
+        private void BtnManageUsers_Click(object sender, RoutedEventArgs e)
+        {
+            if (!UserSession.CanManageUsers)
+            {
+                MessageBox.Show("شما مجوز دسترسی به بخش مدیریت کاربران را ندارید.", "عدم دسترسی", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                var win = new ManageUsersWindow { Owner = this };
+                win.ShowDialog();
+                ApplyUserPermissions();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطا در باز کردن پنجره مدیریت کاربران:\n{ex.Message}", "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnChangePassword_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var win = new ChangePasswordWindow { Owner = this };
+                if (win.ShowDialog() == true)
+                {
+                    ApplyUserPermissions();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطا در باز کردن پنجره تغییر رمز عبور:\n{ex.Message}", "خطا", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnLogout_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show("آیا قصد خروج از حساب کاربری فعلی را دارید؟", "خروج از سامانه", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                UserSession.CurrentUser = null;
+                Hide();
+                var loginWin = new LoginWindow();
+                if (loginWin.ShowDialog() == true && UserSession.IsLoggedIn)
+                {
+                    ApplyUserPermissions();
+                    Show();
+                }
+                else
+                {
+                    Close();
+                }
+            }
         }
     }
 }

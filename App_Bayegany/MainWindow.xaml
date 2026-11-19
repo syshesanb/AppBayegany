@@ -16,29 +16,67 @@
             <RowDefinition Height="Auto"/> <!-- نوار وضعیت پایین صفحه -->
         </Grid.RowDefinitions>
 
-        <!-- ۱. نوار ابزار اصلی بالای صفحه -->
-        <Border Grid.Row="0" Background="#1E3A8A" CornerRadius="6" Padding="14,10" Margin="0,0,0,10">
+        <!-- ۱. نوار ابزار اصلی بالای صفحه در دو سطر مستقل -->
+        <Border Grid.Row="0" Background="#1E3A8A" CornerRadius="8" Padding="16,10" Margin="0,0,0,10">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- سطر ۱: عنوان سامانه (راست) + مشخصات کاربر جاری و دکمه‌های حساب (چپ) -->
+                    <RowDefinition Height="Auto"/> <!-- خط جداکننده افقی ظریف -->
+                    <RowDefinition Height="Auto"/> <!-- سطر ۲: دکمه‌های عملیاتی سیستم در ردیف مجزا و کاملاً خوانا -->
+                </Grid.RowDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🏛️ سامانه هوشمند بایگانی اسناد و مدارک" Foreground="White" FontSize="16" FontWeight="Bold"/>
-                    <TextBlock Text=" (نسخه ۱.۰ | WPF &amp; SQLite)" Foreground="#93C5FD" FontSize="12.5" Margin="8,2,0,0"/>
-                </StackPanel>
+                <!-- سطر ۱: عنوان برنامه و اطلاعات کاربر -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/> <!-- سمت راست: عنوان برنامه -->
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/> <!-- سمت چپ: وضعیت کاربر جاری، تغییر رمز، خروج -->
+                    </Grid.ColumnDefinitions>
 
-                <!-- دکمه‌های عملیاتی -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="➕ ثبت مدرک جدید" Click="BtnNewDoc_Click" Width="150" Height="36" Background="#16A34A" FontWeight="Bold" Margin="0,0,8,0"/>
-                    <Button Content="📊 گزارش‌گیری جامع و ماتریسی" Click="BtnOpenReport_Click" Width="210" Height="36" Background="#0284C7" FontWeight="Bold" Margin="0,0,8,0" ToolTip="گزارش چندبعدی موضوعات سه‌سطحی و اشخاص سه‌گانه"/>
-                    <Button Content="👥 اشخاص" Click="BtnManagePersons_Click" Width="95" Height="36" Background="#334155" Margin="0,0,8,0"/>
-                    <Button Content="📁 موضوعات" Click="BtnManageSubjects_Click" Width="95" Height="36" Background="#334155" Margin="0,0,8,0"/>
-                    <Button Content="💾 پشتیبان‌گیری" Click="BtnBackup_Click" Width="105" Height="36" Background="#334155" Margin="0,0,6,0" ToolTip="تهیه نسخه پشتیبان از کل بانک اطلاعاتی و مدارک"/>
-                    <Button Content="♻️ بازیابی اطلاعات" Click="BtnRestore_Click" Width="115" Height="36" Background="#B45309" ToolTip="بازیابی اطلاعات از فایل پشتیبان قبلی"/>
-                </StackPanel>
+                    <!-- عنوان برنامه و نسخه -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🏛️ سامانه جامع و هوشمند بایگانی اسناد و مدارک" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                        <TextBlock Text=" (نسخه ۱.۰ | WPF &amp; SQLite)" Foreground="#93C5FD" FontSize="12.5" Margin="8,2,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- مشخصات کاربر جاری و گزینه‌های حساب -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="#172554" CornerRadius="6" BorderBrush="#3B82F6" BorderThickness="1" Padding="10,4" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="👤 کاربر جاری: " Foreground="#94A3B8" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtCurrentUser" Text="مدیر سیستم (مدیر سیستم (دسترسی کامل))" Foreground="#FDE047" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="BtnChangePassword" Content="🔑 تغییر کلمه عبور" Click="BtnChangePassword_Click" Width="125" Height="30" Background="#0F766E" FontSize="12" Padding="6,2" Margin="0,0,6,0" ToolTip="تغییر نام کاربری، نام و رمز عبور حساب جاری"/>
+                        <Button x:Name="BtnLogout" Content="🚪 خروج" Click="BtnLogout_Click" Width="75" Height="30" Background="#991B1B" FontSize="12" Padding="6,2" ToolTip="خروج از حساب کاربری و بازگشت به صفحه لاگین"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- جداکننده افقی ظریف میان دو سطر -->
+                <Border Grid.Row="1" Height="1" Background="#3B82F6" Opacity="0.35" Margin="0,8,0,8"/>
+
+                <!-- سطر ۲: دکمه‌های عملیاتی سیستم در ردیف مجزا و بدون فشردگی -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="BtnNewDoc" Content="➕ ثبت مدرک جدید" Click="BtnNewDoc_Click" Width="150" Height="36" Background="#16A34A" FontWeight="Bold" Margin="0,0,8,0" ToolTip="افزودن سند و مدرک جدید به بایگانی"/>
+                        <Button x:Name="BtnOpenReport" Content="📊 گزارش‌گیری جامع و ماتریسی" Click="BtnOpenReport_Click" Width="210" Height="36" Background="#0284C7" FontWeight="Bold" Margin="0,0,8,0" ToolTip="گزارش چندبعدی موضوعات سه‌سطحی و اشخاص سه‌گانه"/>
+                        <Button x:Name="BtnManagePersons" Content="👥 مدیریت اشخاص" Click="BtnManagePersons_Click" Width="130" Height="36" Background="#334155" Margin="0,0,8,0" ToolTip="مدیریت اشخاص حقیقی، شرکت‌ها و سازمان‌ها"/>
+                        <Button x:Name="BtnManageSubjects" Content="📁 موضوعات بایگانی" Click="BtnManageSubjects_Click" Width="135" Height="36" Background="#334155" Margin="0,0,8,0" ToolTip="مدیریت درخت موضوعات و دسته‌بندی‌های سه‌سطحی"/>
+                        <Button x:Name="BtnBackup" Content="💾 پشتیبان‌گیری" Click="BtnBackup_Click" Width="120" Height="36" Background="#334155" Margin="0,0,8,0" ToolTip="تهیه نسخه پشتیبان از کل پایگاه‌داده و مدارک"/>
+                        <Button x:Name="BtnRestore" Content="♻️ بازیابی اطلاعات" Click="BtnRestore_Click" Width="125" Height="36" Background="#B45309" Margin="0,0,8,0" ToolTip="بازیابی اطلاعات از فایل پشتیبان قبلی"/>
+                    </StackPanel>
+
+                    <!-- دکمه مدیریت کاربران در سمت چپ سطر دوم با رنگ متمایز نیلی -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="BtnManageUsers" Content="🔐 مدیریت کاربران و دسترسی‌ها" Click="BtnManageUsers_Click" Width="200" Height="36" Background="#4F46E5" FontWeight="Bold" ToolTip="تعریف کاربران، نقش‌ها و تعیین سطوح دسترسی تفکیکی"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Border>
 
@@ -223,8 +261,8 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Name="TxtDocCountHeader" Text="فهرست اسناد بایگانی (تعداد: ۰ سند)" FontWeight="Bold" Foreground="#1E3A8A"/>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                    <Button Content="✏️ ویرایش سند" Click="BtnEditSelectedDoc_Click" Width="105" Height="30" Background="#0284C7" Margin="0,0,6,0"/>
-                                    <Button Content="🗑️ حذف سند" Click="BtnDeleteSelectedDoc_Click" Width="95" Height="30" Background="#DC2626"/>
+                                    <Button x:Name="BtnEditDoc" Content="✏️ ویرایش سند" Click="BtnEditSelectedDoc_Click" Width="105" Height="30" Background="#0284C7" Margin="0,0,6,0"/>
+                                    <Button x:Name="BtnDeleteDoc" Content="🗑️ حذف سند" Click="BtnDeleteSelectedDoc_Click" Width="95" Height="30" Background="#DC2626"/>
                                 </StackPanel>
                             </Grid>
                         </Border>

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 using BayeganyApp.Database;
+using BayeganyApp.Models;
 
 namespace BayeganyApp
 {
@@ -20,12 +21,29 @@ namespace BayeganyApp
 
             try
             {
+                // جلوگیری از بسته شدن خودکار برنامه پس از بسته شدن پنجره لاگین
+                ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
                 // ۱. مقداردهی اولیه پایگاه‌داده و جداول
                 DatabaseHelper.InitializeDatabase();
 
-                // ۲. باز کردن پنجره اصلی
-                var mainWindow = new MainWindow();
-                mainWindow.Show();
+                // ۲. نمایش پنجره احراز هویت و لاگین
+                var loginWindow = new Windows.LoginWindow();
+                bool? result = loginWindow.ShowDialog();
+
+                if (result == true && UserSession.IsLoggedIn)
+                {
+                    // ۳. باز کردن پنجره اصلی در صورت احراز هویت موفق
+                    var mainWindow = new MainWindow();
+                    MainWindow = mainWindow;
+                    ShutdownMode = ShutdownMode.OnMainWindowClose;
+                    mainWindow.Show();
+                }
+                else
+                {
+                    // در صورت بستن یا انصراف از لاگین، برنامه خاتمه می‌یابد
+                    Shutdown();
+                }
             }
             catch (Exception ex)
             {

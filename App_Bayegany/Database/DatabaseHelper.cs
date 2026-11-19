@@ -205,7 +205,31 @@ namespace BayeganyApp.Database
                 LEFT JOIN Persons sp2 ON d.SubPerson2Id = sp2.Id;
             ");
 
+            // ۷. جدول کاربران و سطوح دسترسی
+            ExecuteNonQuery(conn, @"
+                CREATE TABLE IF NOT EXISTS Users (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Username TEXT NOT NULL UNIQUE,
+                    PasswordHash TEXT NOT NULL,
+                    FullName TEXT NOT NULL,
+                    Role TEXT NOT NULL,
+                    CanAddDoc INTEGER NOT NULL DEFAULT 1,
+                    CanEditDoc INTEGER NOT NULL DEFAULT 1,
+                    CanDeleteDoc INTEGER NOT NULL DEFAULT 0,
+                    CanManagePersons INTEGER NOT NULL DEFAULT 1,
+                    CanManageSubjects INTEGER NOT NULL DEFAULT 1,
+                    CanViewReports INTEGER NOT NULL DEFAULT 1,
+                    CanBackupRestore INTEGER NOT NULL DEFAULT 0,
+                    CanManageUsers INTEGER NOT NULL DEFAULT 0,
+                    IsActive INTEGER NOT NULL DEFAULT 1,
+                    CreatedAt TEXT
+                );
+            ");
+
             trans.Commit();
+
+            // اطمینان از وجود حداقل یک کاربر مدیر در اولین راه‌اندازی
+            EnsureDefaultAdmin();
 
             // توجه: درج خودکار داده‌های پیش‌فرض غیرفعال شد تا دیتابیس همیشه کاملاً خام و بدون دیتای اضافی باقی بماند
             // SeedSampleDataIfEmpty(conn);
@@ -1011,6 +1035,237 @@ namespace BayeganyApp.Database
             cmd.Parameters.AddWithValue("@ci", phone);
             cmd.Parameters.AddWithValue("@nt", notes);
             return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        // ==================== مدیریت کاربران و سطوح دسترسی ====================
+
+        public static void EnsureDefaultAdmin()
+        {
+            using var conn = GetConnection();
+            using var cmdCount = conn.CreateCommand();
+            cmdCount.CommandText = "SELECT COUNT(*) FROM Users;";
+            var count = Convert.ToInt32(cmdCount.ExecuteScalar());
+            if (count == 0)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    INSERT INTO Users (Username, PasswordHash, FullName, Role, 
+                        CanAddDoc, CanEditDoc, CanDeleteDoc, CanManagePersons, CanManageSubjects, 
+                        CanViewReports, CanBackupRestore, CanManageUsers, IsActive, CreatedAt)
+                    VALUES (@un, @ph, @fn, @ro, 1, 1, 1, 1, 1, 1, 1, 1, 1, @ca);";
+                cmd.Parameters.AddWithValue("@un", "admin");
+                cmd.Parameters.AddWithValue("@ph", SecurityHelper.HashPassword("admin"));
+                cmd.Parameters.AddWithValue("@fn", "مدیر سیستم");
+                cmd.Parameters.AddWithValue("@ro", "مدیر سیستم (دسترسی کامل)");
+                cmd.Parameters.AddWithValue("@ca", DateTime.Now.ToString("yyyy/MM/dd HH:mm"));
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static UserItem? AuthenticateUser(string username, string password)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM Users WHERE LOWER(Username) = LOWER(@un);";
+            cmd.Parameters.AddWithValue("@un", username.Trim());
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                var storedHash = reader.GetString(reader.GetOrdinal("PasswordHash"));
+                if (SecurityHelper.VerifyPassword(password, storedHash))
+                {
+                    bool isActive = reader.GetInt32(reader.GetOrdinal("IsActive")) == 1;
+                    if (!isActive)
+                    {
+                        throw new InvalidOperationException("حساب کاربری شما غیرفعال شده است. لطفاً با مدیر سیستم تماس بگیرید.");
+                    }
+
+                    return ReadUserFromReader(reader);
+                }
+            }
+            return null;
+        }
+
+        public static List<UserItem> GetAllUsers()
+        {
+            var list = new List<UserItem>();
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM Users ORDER BY Id ASC;";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(ReadUserFromReader(reader));
+            }
+            return list;
+        }
+
+        public static UserItem? GetUserById(int id)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM Users WHERE Id = @id;";
+            cmd.Parameters.AddWithValue("@id", id);
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                return ReadUserFromReader(reader);
+            }
+            return null;
+        }
+
+        public static bool IsUsernameTaken(string username, int excludeUserId = 0)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM Users WHERE LOWER(Username) = LOWER(@un) AND Id != @id;";
+            cmd.Parameters.AddWithValue("@un", username.Trim());
+            cmd.Parameters.AddWithValue("@id", excludeUserId);
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        }
+
+        public static int AddUser(UserItem user, string plainPassword)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                INSERT INTO Users (Username, PasswordHash, FullName, Role, 
+                    CanAddDoc, CanEditDoc, CanDeleteDoc, CanManagePersons, CanManageSubjects, 
+                    CanViewReports, CanBackupRestore, CanManageUsers, IsActive, CreatedAt)
+                VALUES (@un, @ph, @fn, @ro, @cad, @ced, @cdd, @cmp, @cms, @cvr, @cbr, @cmu, @ia, @ca);
+                SELECT last_insert_rowid();";
+            cmd.Parameters.AddWithValue("@un", user.Username.Trim());
+            cmd.Parameters.AddWithValue("@ph", SecurityHelper.HashPassword(plainPassword));
+            cmd.Parameters.AddWithValue("@fn", user.FullName.Trim());
+            cmd.Parameters.AddWithValue("@ro", user.Role);
+            cmd.Parameters.AddWithValue("@cad", user.CanAddDoc ? 1 : 0);
+            cmd.Parameters.AddWithValue("@ced", user.CanEditDoc ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cdd", user.CanDeleteDoc ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cmp", user.CanManagePersons ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cms", user.CanManageSubjects ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cvr", user.CanViewReports ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cbr", user.CanBackupRestore ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cmu", user.CanManageUsers ? 1 : 0);
+            cmd.Parameters.AddWithValue("@ia", user.IsActive ? 1 : 0);
+            cmd.Parameters.AddWithValue("@ca", DateTime.Now.ToString("yyyy/MM/dd HH:mm"));
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        public static bool UpdateUser(UserItem user, string? newPlainPassword = null)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            if (!string.IsNullOrEmpty(newPlainPassword))
+            {
+                cmd.CommandText = @"
+                    UPDATE Users SET 
+                        Username = @un, 
+                        PasswordHash = @ph,
+                        FullName = @fn, 
+                        Role = @ro, 
+                        CanAddDoc = @cad, 
+                        CanEditDoc = @ced, 
+                        CanDeleteDoc = @cdd, 
+                        CanManagePersons = @cmp, 
+                        CanManageSubjects = @cms, 
+                        CanViewReports = @cvr, 
+                        CanBackupRestore = @cbr, 
+                        CanManageUsers = @cmu, 
+                        IsActive = @ia
+                    WHERE Id = @id;";
+                cmd.Parameters.AddWithValue("@ph", SecurityHelper.HashPassword(newPlainPassword));
+            }
+            else
+            {
+                cmd.CommandText = @"
+                    UPDATE Users SET 
+                        Username = @un, 
+                        FullName = @fn, 
+                        Role = @ro, 
+                        CanAddDoc = @cad, 
+                        CanEditDoc = @ced, 
+                        CanDeleteDoc = @cdd, 
+                        CanManagePersons = @cmp, 
+                        CanManageSubjects = @cms, 
+                        CanViewReports = @cvr, 
+                        CanBackupRestore = @cbr, 
+                        CanManageUsers = @cmu, 
+                        IsActive = @ia
+                    WHERE Id = @id;";
+            }
+
+            cmd.Parameters.AddWithValue("@un", user.Username.Trim());
+            cmd.Parameters.AddWithValue("@fn", user.FullName.Trim());
+            cmd.Parameters.AddWithValue("@ro", user.Role);
+            cmd.Parameters.AddWithValue("@cad", user.CanAddDoc ? 1 : 0);
+            cmd.Parameters.AddWithValue("@ced", user.CanEditDoc ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cdd", user.CanDeleteDoc ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cmp", user.CanManagePersons ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cms", user.CanManageSubjects ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cvr", user.CanViewReports ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cbr", user.CanBackupRestore ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cmu", user.CanManageUsers ? 1 : 0);
+            cmd.Parameters.AddWithValue("@ia", user.IsActive ? 1 : 0);
+            cmd.Parameters.AddWithValue("@id", user.Id);
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
+        public static bool UpdateUserProfile(int userId, string newUsername, string newFullName, string? newPlainPassword = null)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            if (!string.IsNullOrEmpty(newPlainPassword))
+            {
+                cmd.CommandText = "UPDATE Users SET Username = @un, FullName = @fn, PasswordHash = @ph WHERE Id = @id;";
+                cmd.Parameters.AddWithValue("@ph", SecurityHelper.HashPassword(newPlainPassword));
+            }
+            else
+            {
+                cmd.CommandText = "UPDATE Users SET Username = @un, FullName = @fn WHERE Id = @id;";
+            }
+            cmd.Parameters.AddWithValue("@un", newUsername.Trim());
+            cmd.Parameters.AddWithValue("@fn", newFullName.Trim());
+            cmd.Parameters.AddWithValue("@id", userId);
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
+        public static bool DeleteUser(int userId)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "DELETE FROM Users WHERE Id = @id;";
+            cmd.Parameters.AddWithValue("@id", userId);
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
+        public static int GetActiveAdminCount()
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM Users WHERE IsActive = 1 AND (Role LIKE '%مدیر%' OR CanManageUsers = 1);";
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        private static UserItem ReadUserFromReader(SqliteDataReader reader)
+        {
+            return new UserItem
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                Username = reader.GetString(reader.GetOrdinal("Username")),
+                PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
+                FullName = reader.GetString(reader.GetOrdinal("FullName")),
+                Role = reader.GetString(reader.GetOrdinal("Role")),
+                CanAddDoc = reader.GetInt32(reader.GetOrdinal("CanAddDoc")) == 1,
+                CanEditDoc = reader.GetInt32(reader.GetOrdinal("CanEditDoc")) == 1,
+                CanDeleteDoc = reader.GetInt32(reader.GetOrdinal("CanDeleteDoc")) == 1,
+                CanManagePersons = reader.GetInt32(reader.GetOrdinal("CanManagePersons")) == 1,
+                CanManageSubjects = reader.GetInt32(reader.GetOrdinal("CanManageSubjects")) == 1,
+                CanViewReports = reader.GetInt32(reader.GetOrdinal("CanViewReports")) == 1,
+                CanBackupRestore = reader.GetInt32(reader.GetOrdinal("CanBackupRestore")) == 1,
+                CanManageUsers = reader.GetInt32(reader.GetOrdinal("CanManageUsers")) == 1,
+                IsActive = reader.GetInt32(reader.GetOrdinal("IsActive")) == 1,
+                CreatedAt = reader.IsDBNull(reader.GetOrdinal("CreatedAt")) ? "" : reader.GetString(reader.GetOrdinal("CreatedAt"))
+            };
         }
     }
 }
